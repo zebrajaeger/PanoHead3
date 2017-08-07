@@ -15,13 +15,13 @@ public class Grbl {
 
     public void setListener(Listener listener) {
         this.listener = listener;
-        if(resultListener!=null){
+        if (resultListener != null) {
             resultListener.addListener(listener);
         }
     }
 
     public boolean addCommand(String cmd) {
-        if(commandSender==null){
+        if (commandSender == null) {
             return false;
         }
         commandSender.addCommand(cmd);
@@ -34,7 +34,7 @@ public class Grbl {
             throw new IllegalStateException("at least one thread is running");
         } else {
             resultListener = new ResultListener(streamable);
-            if(listener!=null){
+            if (listener != null) {
                 resultListener.addListener(listener);
             }
             commandSender = new CommandSender(streamable);
@@ -53,6 +53,20 @@ public class Grbl {
         if (commandSender != null) {
             commandSender.interrupt();
             commandSender.join();
+        }
+    }
+
+    public enum GrblStatus {
+        IDLE, RUN, HOLD, DOOR, HOME, ALARM, CHECK, UNKNOWN;
+
+        public static GrblStatus of(String status) {
+            status = status.toUpperCase();
+            try {
+                return GrblStatus.valueOf(status);
+            } catch (IllegalArgumentException e) {
+                Log.w("Could not interpret status '" + status + "'", e);
+                return UNKNOWN;
+            }
         }
     }
 

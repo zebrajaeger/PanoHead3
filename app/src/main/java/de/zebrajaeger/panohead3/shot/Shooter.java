@@ -8,13 +8,15 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import de.zebrajaeger.grblconnector.PanoHead;
+import de.zebrajaeger.grblconnector.GrblStatusReceiver;
 import de.zebrajaeger.grblconnector.ShotConfig;
+import de.zebrajaeger.grblconnector.grbl.Grbl;
 import de.zebrajaeger.grblconnector.grbl.move.Pos;
 
 /**
  * Created by Lars Brandt on 05.08.2017.
  */
-public class Shooter {
+public class Shooter implements GrblStatusReceiver.Listener {
     public static final String BROADCAST_STATE_CHANGED = "de.zebrajaeger.panohead.shooter.STATE";
     public static final String BROADCAST_STATE_CHANGED_FROM = "from";
     public static final String BROADCAST_STATE_CHANGED_TO = "to";
@@ -27,17 +29,22 @@ public class Shooter {
     private final Context ctx;
     private final ShotConfig shotConfig;
     private final ShooterScript script;
+    private final GrblStatusReceiver grblStatusReceiver;
     private Timer ticTimer;
     private int currentImageIndex = 0;
     private ShooterState shooterState = ShooterState.IDLE;
     private ShooterState prePauseShooterState;
+    private Grbl.GrblStatus grblStatus = Grbl.GrblStatus.UNKNOWN;
+
     private Pos lastpos;
+    private PauseState pause = PauseState.RUNNING;
 
     public Shooter(Context ctx, ShotConfig shotConfig, ShooterScript script) {
         this.ctx = ctx;
         this.shotConfig = shotConfig;
         this.script = script;
 
+        grblStatusReceiver = new GrblStatusReceiver(ctx, this);
         setShooterState(ShooterState.IDLE);
         ticTimer = new Timer("Shooter");
         ticTimer.scheduleAtFixedRate(new TimerTask() {
@@ -46,6 +53,12 @@ public class Shooter {
                 onTic();
             }
         }, 0, 100);
+    }
+
+    public void destroy() {
+        ticTimer.cancel();
+        ticTimer = null;
+        grblStatusReceiver.destroy();
     }
 
     public void start() {
@@ -60,35 +73,46 @@ public class Shooter {
     }
 
     public void pauseOrResume() {
-        if (isRunning()) {
-            pause();
-        } else if (isPaused()) {
-            resume();
-        }
-    }
-
-    public void pause() {
-        if (shooterState == ShooterState.GO_TO_POS || shooterState == ShooterState.SHOOTING) {
-            prePauseShooterState = shooterState;
-            shooterState = ShooterState.PAUSED;
-        }
-    }
-
-    public void resume() {
-        if (shooterState == ShooterState.PAUSED) {
-            shooterState = prePauseShooterState;
+        switch(pause) {
+            case WAIT_FOR_PAUSE:
+            case PAUSED:
+                pause = PauseState.RUNNING;
+                break;
+            case RUNNING:
+                pause = PauseState.WAIT_FOR_PAUSE;
+                break;
         }
     }
 
     private synchronized void onTic() {
+        if(pause==PauseState.WAIT_FOR_PAUSE){
+            prePauseShooterState = getShooterState();
+            setShooterState(ShooterState.PAUSED);
+            pause = PauseState.PAUSED;
+        }
+
         switch (getShooterState()) {
+            case PAUSED: {
+                if(pause!=PauseState.PAUSED ){
+                    setShooterState(prePauseShooterState);
+                }
+            }
+            break;
+
             case GO_TO_POS: {
                 try {
                     moveToShot(getCurrentImageIndex());
-                    setShooterState(ShooterState.SHOOTING);
+                    setShooterState(ShooterState.WAIT_FOR_MOTION_STOP);
                 } catch (InterruptedException e) {
                     Log.e(LOG_SCOPE, "Could not move to image index " + getCurrentImageIndex(), e);
                     setShooterState(ShooterState.FAILED);
+                }
+            }
+            break;
+
+            case WAIT_FOR_MOTION_STOP: {
+                if(grblStatus== Grbl.GrblStatus.IDLE){
+                    setShooterState(ShooterState.SHOOTING);
                 }
             }
             break;
@@ -148,11 +172,6 @@ public class Shooter {
         moveToPos(Pos.of(shot.getX(), shot.getY()));
     }
 
-    public void destroy() {
-        ticTimer.cancel();
-        ticTimer = null;
-    }
-
     public int getCurrentImageIndex() {
         return currentImageIndex;
     }
@@ -169,7 +188,7 @@ public class Shooter {
     }
 
     private boolean incrementCurrentImageIndex() {
-        if (getCurrentImageIndex() < script.getShots().size()-1) {
+        if (getCurrentImageIndex() < script.getShots().size() - 1) {
             setCurrentImageIndex(getCurrentImageIndex() + 1);
             return true;
         }
@@ -192,6 +211,7 @@ public class Shooter {
     public boolean isRunning() {
         return shooterState == ShooterState.GO_TO_POS
                 || shooterState == ShooterState.GO_TO_START_POS
+                || shooterState == ShooterState.WAIT_FOR_MOTION_STOP
                 || shooterState == ShooterState.SHOOTING;
     }
 
@@ -206,10 +226,21 @@ public class Shooter {
                 || shooterState == ShooterState.FAILED;
     }
 
+    @Override
+    public void onPos(Pos pos, Grbl.GrblStatus status) {
+        grblStatus = status;
+    }
+
     public enum ShooterState {
         IDLE, FAILED, STOPPED, FINISHED,
-        GO_TO_POS, SHOOTING, GO_TO_START_POS,
+        GO_TO_POS, WAIT_FOR_MOTION_STOP, SHOOTING, GO_TO_START_POS,
         STOPPING,
         PAUSED
+    }
+
+    public enum PauseState {
+        WAIT_FOR_PAUSE,
+        PAUSED,
+        RUNNING
     }
 }

@@ -10,7 +10,6 @@ import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.View;
 
-import de.zebrajaeger.grblconnector.PosReceiver;
 import de.zebrajaeger.grblconnector.grbl.move.Pos;
 import de.zebrajaeger.panohead3.calc.CalculatorData;
 import de.zebrajaeger.panohead3.calc.FovO1D;
@@ -145,7 +144,7 @@ public class PanoShotView extends View {
         int h = resolveSizeAndState(MeasureSpec.getSize(w) - (int)100, heightMeasureSpec, 0);
 */
 
-        setMeasuredDimension(widthMeasureSpec, heightMeasureSpec-80);
+        setMeasuredDimension(widthMeasureSpec, heightMeasureSpec - 65);
     }
 
     @Override
@@ -264,9 +263,9 @@ public class PanoShotView extends View {
             int index = 0;
             RectF currentRect = null;
             for (ShotPosition s : script.getShots()) {
-                float relX = s.getX() / 360f;
-                // TODO Calculator should by based on zero and calculates +-90deg
-                float relY = (s.getY()+90) / 180f;
+                float relX = (s.getX() + 180 - script.getCalculationData().getXOffsetOr(0f)) / 360f;
+                // add 90deg for center pos
+                float relY = (s.getY() + 90 - script.getCalculationData().getYOffsetOr(0f)) / 180f;
                 float iX = (relX * worldRect.width()) + worldRect.left;
                 float iY = (relY * worldRect.height()) + worldRect.top;
                 RectF imageRect = createImageRect(iX, iY, imageSize);
@@ -289,7 +288,7 @@ public class PanoShotView extends View {
 
         if (camPos != null) {
             float x = camPos.getX();
-            float y = camPos.getY();
+            float y = camPos.getY() +90f;
 
             float relX = x / 360f;
             float relY = y / 180f;

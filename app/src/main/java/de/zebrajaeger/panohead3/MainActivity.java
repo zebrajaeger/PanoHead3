@@ -11,12 +11,13 @@ import android.widget.Button;
 
 import de.zebrajaeger.grblconnector.PanoHead;
 import de.zebrajaeger.grblconnector.ShotConfig;
-import de.zebrajaeger.grblconnector.util.Translator;
 import de.zebrajaeger.grblconnector.bt.BT;
+import de.zebrajaeger.grblconnector.util.Translator;
 import de.zebrajaeger.panohead3.calc.Bounds2D;
 import de.zebrajaeger.panohead3.calc.CalculatorData;
 import de.zebrajaeger.panohead3.calc.Fov2D;
 import de.zebrajaeger.panohead3.calc.Overlap;
+import de.zebrajaeger.panohead3.calc.Pos2D;
 import de.zebrajaeger.panohead3.calc.SimpleCalculator;
 import de.zebrajaeger.panohead3.shot.ShooterScript;
 import de.zebrajaeger.panohead3.util.AppData;
@@ -73,11 +74,12 @@ public class MainActivity extends AppCompatActivity {
         button_shot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Fov2D camFov = new Fov2D(50f, null); //TODO
+                Fov2D camFov = new Fov2D(30f, 50f); //TODO
                 Overlap overlap = new Overlap(0.25f, 0.25f); // TODO
-                Bounds2D panoBounds = new Bounds2D(50f, 249f, null, null); // TODO
-                CalculatorData data = new CalculatorData(camFov, overlap, panoBounds);
-                ShotConfig cfg = new ShotConfig(1000,500,500,500);
+                Bounds2D panoBounds = new Bounds2D(50f, 249f, -60f, 60f); // TODO
+                Pos2D offset = new Pos2D(panoBounds.getX().getCenter(), 20f);
+                CalculatorData data = new CalculatorData(camFov, overlap, panoBounds, offset); // TODO
+                ShotConfig cfg = new ShotConfig(1000, 500, 500, 500);
 
                 // calc
                 SimpleCalculator simpleCalculator = new SimpleCalculator();

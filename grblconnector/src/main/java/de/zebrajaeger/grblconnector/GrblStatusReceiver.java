@@ -8,14 +8,15 @@ import android.content.IntentFilter;
 /**
  * Created by Lars Brandt on 05.08.2017.
  */
+import de.zebrajaeger.grblconnector.grbl.Grbl;
 import de.zebrajaeger.grblconnector.grbl.move.Pos;
 
-public class PosReceiver {
+public class GrblStatusReceiver {
     private BroadcastReceiver broadcastReceiver;
     private Context ctx;
     private Listener listener;
 
-    public PosReceiver(Context ctx, Listener listener) {
+    public GrblStatusReceiver(Context ctx, Listener listener) {
         this.ctx = ctx;
         this.listener = listener;
         IntentFilter filter = new IntentFilter();
@@ -24,8 +25,8 @@ public class PosReceiver {
             @Override
             public void onReceive(Context context, Intent intent) {
                 Pos pos = (Pos) intent.getExtras().get(PanoHead.BROADCAST_POS_DATA_POS);
-                String status = (String) intent.getExtras().get(PanoHead.BROADCAST_POS_DATA_STATUS);
-                PosReceiver.this.listener.onPos(pos,status);
+                Grbl.GrblStatus status = (Grbl.GrblStatus) intent.getExtras().get(PanoHead.BROADCAST_POS_DATA_STATUS);
+                GrblStatusReceiver.this.listener.onPos(pos,status);
             }
         };
         ctx.registerReceiver(broadcastReceiver, filter);
@@ -39,7 +40,7 @@ public class PosReceiver {
     }
 
     public interface Listener {
-        void onPos(Pos pos, String status);
+        void onPos(Pos pos, Grbl.GrblStatus status);
     }
 
 }

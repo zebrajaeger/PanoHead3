@@ -1,5 +1,7 @@
 package de.zebrajaeger.grblconnector.grbl;
 
+import android.util.Log;
+
 import de.zebrajaeger.grblconnector.grbl.command.Command;
 import de.zebrajaeger.grblconnector.grbl.command.CommandList;
 
@@ -37,7 +39,7 @@ public class GrblEx extends Grbl implements Grbl.Listener {
                 cmdLock.wait(timeout);
                 result = lastAnswer;
             }
-
+            Log.w("XXX", cmd + " -> " + result);
             waiting = false;
             cmdLock.notifyAll();
             return result;

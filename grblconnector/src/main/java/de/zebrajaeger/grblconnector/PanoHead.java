@@ -3,7 +3,6 @@ package de.zebrajaeger.grblconnector;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.util.Log;
 
 import java.util.Timer;
@@ -11,6 +10,7 @@ import java.util.TimerTask;
 
 import de.zebrajaeger.grblconnector.bt.BT;
 import de.zebrajaeger.grblconnector.bt.BtStateReceiver;
+import de.zebrajaeger.grblconnector.grbl.Grbl;
 import de.zebrajaeger.grblconnector.grbl.GrblEx;
 import de.zebrajaeger.grblconnector.grbl.command.Commands;
 import de.zebrajaeger.grblconnector.grbl.move.GrblMoveableThread;
@@ -27,10 +27,8 @@ public class PanoHead {
     public static final String BROADCAST_POS_DATA_POS = "pos";
     public static final String BROADCAST_POS_DATA_STATUS = "status";
     public static final int POS_TIMER_PERIOD = 250;
-    private static final String LOG_SCOPE = "PanoHead";
-
     public static final PanoHead I = new PanoHead();
-
+    private static final String LOG_SCOPE = "PanoHead";
     public final BT bt = new BT();
     private float feedrate = 30000; // TODO make configrable
     private Context context;
@@ -45,7 +43,7 @@ public class PanoHead {
         context = ctx;
 
         // grbl
-        grbl = new GrblEx(2000);
+        grbl = new GrblEx(10000);
 
         // BT connection change listener
         btStateReceiver = new BtStateReceiver(ctx) {
@@ -74,12 +72,13 @@ public class PanoHead {
                 try {
                     String response = grbl.execute("?");
                     StatusReportResponse status = StatusReportResponse.of(response);
-                    if(status!=null) {
+                    if (status != null) {
                         Pos motor = status.getMpos();
                         Pos drive = translator.translateMotor2Drive(motor);
                         Intent i = new Intent();
                         i.setAction(BROADCAST_POS);
-                        i.putExtra("status", status.getState());
+
+                        i.putExtra("status", Grbl.GrblStatus.of(status.getState()));
                         i.putExtra("pos", drive);
                         context.sendBroadcast(i);
                     }

@@ -1,7 +1,6 @@
 package de.zebrajaeger.panohead3;
 
 import android.app.Dialog;
-import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.view.GestureDetectorCompat;
@@ -9,21 +8,20 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
 import de.zebrajaeger.grblconnector.PanoHead;
+import de.zebrajaeger.grblconnector.grbl.Grbl;
 import de.zebrajaeger.grblconnector.grbl.move.Pos;
 import de.zebrajaeger.grblconnector.ui.JoggingGestureListener;
-import de.zebrajaeger.grblconnector.PosReceiver;
+import de.zebrajaeger.grblconnector.GrblStatusReceiver;
 
-public class JoggingActivity extends AppCompatActivity implements GestureDetector.OnDoubleTapListener, PosReceiver.Listener {
+public class JoggingActivity extends AppCompatActivity implements GestureDetector.OnDoubleTapListener, GrblStatusReceiver.Listener {
 
     public static final String RESULT_BORDER = "border";
     private GestureDetectorCompat detector;
-    private PosReceiver posReceiver;
+    private GrblStatusReceiver grblStatusReceiver;
     private TextView grblStatusText;
 
     @Override
@@ -47,13 +45,13 @@ public class JoggingActivity extends AppCompatActivity implements GestureDetecto
     @Override
     protected void onStart() {
         super.onStart();
-        posReceiver = new PosReceiver(this, this);
+        grblStatusReceiver = new GrblStatusReceiver(this, this);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        posReceiver.destroy();
+        grblStatusReceiver.destroy();
         PanoHead.I.setMoveable(null);
     }
 
@@ -128,7 +126,7 @@ public class JoggingActivity extends AppCompatActivity implements GestureDetecto
     }
 
     @Override
-    public void onPos(Pos pos, String status) {
+    public void onPos(Pos pos, Grbl.GrblStatus status) {
         grblStatusText.setText(pos + "/" + status);
     }
 }
